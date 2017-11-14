@@ -95,14 +95,9 @@ parser.add_argument("--usb-id", type=int, default=0, help="The "
                      "usb camera number to display")
 args = parser.parse_args()
 
-if args.use_usb:
-    import cv2
-    from PIL import Image
-    camera = cv2.VideoCapture(args.usb_id)
-else:
-    import picamera
-    camera = picamera.PiCamera()
-    camera.start_preview()
+import cv2
+from PIL import Image
+camera = cv2.VideoCapture(0)
 
 resolutions = {"high": (1280, 720), "medium": (640, 480), "low": (320, 240)}
 if args.resolution in resolutions:
