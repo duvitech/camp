@@ -9,45 +9,18 @@ import os
 import time
 import threading
 import webbrowser
-
-try:
-    import cStringIO as io
-except ImportError:
-    import io
-
+import io
+import cv2
+from PIL import Image
 import tornado.web
 import tornado.websocket
 from tornado.ioloop import PeriodicCallback
 
-# Hashed password for comparison and a cookie for login cache
-ROOT = os.path.normpath(os.path.dirname(__file__))
-with open(os.path.join(ROOT, "password.txt")) as in_file:
-    PASSWORD = in_file.read().strip()
-COOKIE_NAME = "camp"
-
-
 class IndexHandler(tornado.web.RequestHandler):
 
     def get(self):
-        if args.require_login and not self.get_secure_cookie(COOKIE_NAME):
-            self.redirect("/login")
-        else:
-            self.render("index.html", port=args.port)
+        self.render("index.html")
 
-
-class LoginHandler(tornado.web.RequestHandler):
-
-    def get(self):
-        self.render("login.html")
-
-    def post(self):
-        password = self.get_argument("password", "")
-        if hashlib.sha512(password).hexdigest() == PASSWORD:
-            self.set_secure_cookie(COOKIE_NAME, str(time.time()))
-            self.redirect("/")
-        else:
-            time.sleep(1)
-            self.redirect(u"/login?error")
 
 
 class WebSocket(tornado.websocket.WebSocketHandler):
@@ -66,56 +39,38 @@ class WebSocket(tornado.websocket.WebSocketHandler):
 
     def loop(self):
         """Sends camera images in an infinite loop."""
-        sio = io.StringIO()
-
-        if args.use_usb:
-            _, frame = camera.read()
-            img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            img.save(sio, "JPEG")
-        else:
-            camera.capture(sio, "jpeg", use_video_port=True)
+        _, frame = camera.read()
+        encode_param=[int(cv2.IMWRITE_JPEG_QUALITY),90]
+        retval, buf = cv2.imencode('.jpg', frame, encode_param)
+        if False==retval:
+            print('could not encode image!')
+        
+        # cv2.imshow('Decoded image',buf)
+        # cv2.imshow("Image", img)
+        # cv2.waitKey(0)
+        jpg_as_text = base64.b64encode(buf)
+        # print(jpg_as_text[:80])
 
         try:
-            self.write_message(base64.b64encode(sio.getvalue()))
+            self.write_message(jpg_as_text)
         except tornado.websocket.WebSocketClosedError:
             self.camera_loop.stop()
 
-
-parser = argparse.ArgumentParser(description="Starts a webserver that "
-                                 "connects to a webcam.")
-parser.add_argument("--port", type=int, default=8000, help="The "
-                    "port on which to serve the website.")
-parser.add_argument("--resolution", type=str, default="low", help="The "
-                    "video resolution. Can be high, medium, or low.")
-parser.add_argument("--require-login", action="store_true", help="Require "
-                    "a password to log in to webserver.")
-parser.add_argument("--use-usb", action="store_true", help="Use a USB "
-                    "webcam instead of the standard Pi camera.")
-parser.add_argument("--usb-id", type=int, default=0, help="The "
-                     "usb camera number to display")
-args = parser.parse_args()
-
-import cv2
-from PIL import Image
 camera = cv2.VideoCapture(0)
-
+ROOT = os.path.normpath(os.path.dirname(__file__))
 resolutions = {"high": (1280, 720), "medium": (640, 480), "low": (320, 240)}
-if args.resolution in resolutions:
-    if args.use_usb:
-        w, h = resolutions[args.resolution]
-        camera.set(3, w)
-        camera.set(4, h)
-    else:
-        camera.resolution = resolutions[args.resolution]
-else:
-    raise Exception("%s not in resolution options." % args.resolution)
 
-handlers = [(r"/", IndexHandler), (r"/login", LoginHandler),
+w = 640
+h = 480
+camera.set(3, w)
+camera.set(4, h)
+
+
+handlers = [(r'/', IndexHandler),
             (r"/websocket", WebSocket),
             (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': ROOT})]
-application = tornado.web.Application(handlers, cookie_secret=PASSWORD)
-application.listen(args.port)
 
-webbrowser.open("http://localhost:%d/" % args.port, new=2)
+application = tornado.web.Application(handlers)
+application.listen(8000)
 
 tornado.ioloop.IOLoop.instance().start()
