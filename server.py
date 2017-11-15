@@ -60,8 +60,8 @@ camera = cv2.VideoCapture(1)
 ROOT = os.path.normpath(os.path.dirname(__file__))
 resolutions = {"high": (1280, 720), "medium": (640, 480), "low": (320, 240)}
 
-w = 640
-h = 480
+w = 320
+h = 240
 camera.set(3, w)
 camera.set(4, h)
 
