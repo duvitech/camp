@@ -30,7 +30,7 @@ class WebSocket(tornado.websocket.WebSocketHandler):
 
         # Start an infinite loop when this is called
         if message == "read_camera":
-            self.camera_loop = PeriodicCallback(self.loop, 20)
+            self.camera_loop = PeriodicCallback(self.loop, 61)
             self.camera_loop.start()
 
         # Extensibility for other methods
