@@ -73,4 +73,5 @@ handlers = [(r'/', IndexHandler),
 application = tornado.web.Application(handlers)
 application.listen(8000)
 
+print('Server started!!')
 tornado.ioloop.IOLoop.instance().start()
