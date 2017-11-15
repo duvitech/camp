@@ -56,7 +56,7 @@ class WebSocket(tornado.websocket.WebSocketHandler):
         except tornado.websocket.WebSocketClosedError:
             self.camera_loop.stop()
 
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(1)
 ROOT = os.path.normpath(os.path.dirname(__file__))
 resolutions = {"high": (1280, 720), "medium": (640, 480), "low": (320, 240)}
 
